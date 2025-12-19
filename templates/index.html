@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSI System - Material Classification</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Material Stream Identification</h1>
+            <p class="subtitle">AI-powered waste material classification</p>
+        </header>
+
+        <nav class="nav-tabs">
+            <a href="/" class="tab active">📤 Upload</a>
+            <a href="/camera" class="tab">📷 Camera</a>
+        </nav>
+
+        {% if not models_loaded %}
+        <div class="alert alert-warning">
+            ⚠️ <strong>Models not loaded!</strong> Please run <code>MSI_System.ipynb</code> first to train and save models.
+        </div>
+        {% endif %}
+
+        <main class="upload-section">
+            <div class="upload-area" id="dropZone">
+                <div class="upload-icon">📁</div>
+                <p>Drag & drop an image here or <strong>click to browse</strong></p>
+                <input type="file" id="fileInput" accept="image/*" hidden>
+            </div>
+
+            <div class="options-row">
+                <div class="option-group">
+                    <label for="modelSelect">Model:</label>
+                    <select id="modelSelect">
+                        <option value="svm">SVM</option>
+                        <option value="knn">k-NN</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="thresholdInput">Confidence Threshold:</label>
+                    <input type="range" id="thresholdInput" min="0.3" max="0.9" step="0.05" value="0.6">
+                    <span id="thresholdValue">0.6</span>
+                </div>
+            </div>
+
+            <div id="previewSection" class="preview-section hidden">
+                <img id="previewImage" src="" alt="Preview">
+                <button id="classifyBtn" class="btn-primary">🔍 Classify Image</button>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <h3>Classification Result</h3>
+                <div class="result-card">
+                    <div class="result-class" id="resultClass">-</div>
+                    <div class="result-confidence">
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill"></div>
+                        </div>
+                        <span id="confidenceText">0%</span>
+                    </div>
+                    <div class="result-model" id="resultModel">Model: -</div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="material-classes">
+                <span class="class-badge glass">Glass</span>
+                <span class="class-badge paper">Paper</span>
+                <span class="class-badge cardboard">Cardboard</span>
+                <span class="class-badge plastic">Plastic</span>
+                <span class="class-badge metal">Metal</span>
+                <span class="class-badge trash">Trash</span>
+                <span class="class-badge unknown">Unknown</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const classifyBtn = document.getElementById('classifyBtn');
+        const resultSection = document.getElementById('resultSection');
+        const thresholdInput = document.getElementById('thresholdInput');
+        const thresholdValue = document.getElementById('thresholdValue');
+
+        let selectedFile = null;
+
+        // Threshold slider
+        thresholdInput.addEventListener('input', (e) => {
+            thresholdValue.textContent = e.target.value;
+        });
+
+        // Drop zone click
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            selectedFile = file;
+            previewImage.src = URL.createObjectURL(file);
+            previewSection.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+        }
+
+        // Classify button
+        classifyBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            classifyBtn.disabled = true;
+            classifyBtn.textContent = '⏳ Classifying...';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('model', document.getElementById('modelSelect').value);
+            formData.append('threshold', thresholdInput.value);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showResult(data);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                classifyBtn.disabled = false;
+                classifyBtn.textContent = '🔍 Classify Image';
+            }
+        });
+
+        function showResult(data) {
+            document.getElementById('resultClass').textContent = data.class.toUpperCase();
+            document.getElementById('resultClass').className = 'result-class ' + data.class;
+            document.getElementById('confidenceFill').style.width = (data.confidence * 100) + '%';
+            document.getElementById('confidenceText').textContent = (data.confidence * 100).toFixed(1) + '%';
+            document.getElementById('resultModel').textContent = 'Model: ' + data.model.toUpperCase();
+            resultSection.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSI System - Live Camera</title>
+    <link rel="stylesheet"  href="../static/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Material Stream Identification</h1>
+            <p class="subtitle">Real-time camera classification</p>
+        </header>
+
+        <nav class="nav-tabs">
+            <a href="/" class="tab">📤 Upload</a>
+            <a href="/camera" class="tab active">📷 Camera</a>
+        </nav>
+
+        <main class="camera-section">
+            <div class="camera-container">
+                <img id="cameraFeed" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+                <div class="camera-overlay">
+                    <span class="live-indicator">🔴 LIVE</span>
+                </div>
+            </div>
+
+            <div class="camera-controls">
+                <button id="stopBtn" class="btn-danger" onclick="stopCamera()">
+                    ⏹️ Stop Camera
+                </button>
+                <button id="startBtn" class="btn-primary hidden" onclick="startCamera()">
+                    ▶️ Start Camera
+                </button>
+            </div>
+
+            <div class="camera-info">
+                <p>📌 Point your camera at recyclable materials for real-time classification</p>
+                <p>The system uses the SVM model with confidence threshold of 0.6</p>
+            </div>
+        </main>
+
+        <footer>
+            <div class="material-classes">
+                <span class="class-badge glass">Glass</span>
+                <span class="class-badge paper">Paper</span>
+                <span class="class-badge cardboard">Cardboard</span>
+                <span class="class-badge plastic">Plastic</span>
+                <span class="class-badge metal">Metal</span>
+                <span class="class-badge trash">Trash</span>
+                <span class="class-badge unknown">Unknown</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function stopCamera() {
+            document.getElementById('cameraFeed').src = '';
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('startBtn').classList.remove('hidden');
+            fetch('/stop_camera');
+        }
+
+        function startCamera() {
+            document.getElementById('cameraFeed').src = '{{ url_for("video_feed") }}?' + new Date().getTime();
+            document.getElementById('startBtn').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>
