@@ -35,10 +35,9 @@ env/
 *.swp
 *.swo
 
-# Models (large files)
-models/*.pkl
 
 # Uploads
+
 uploads/
 
 # OS
